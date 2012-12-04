@@ -14,12 +14,49 @@ module.exports = function(grunt) {
   // With default config in `_config.yml`, both server & auto should be turned
   // on. Jekyll will generate the website & spawn a local server on port 4000.
   // `auto` is here to watch for changes and regenerate if necessary.
-  grunt.registerTask('server', 'jekyll:config jekyll:server watch:jekyll');
+  grunt.registerTask('server', 'jekyll:livereload jekyll:server watch');
+
+  // ensure proper config in Gruntfile. Case there are no config for jekyll, setup defaults
+  grunt.registerTask('jekyll:livereload', function() {
+
+    var cb = this.async();
+    var server = http.createServer(function(req, res) {
+      var url = parse(req.url);
+      if(url.pathname === '/livereload.js') {
+        return request(livereload).pipe(res);
+      }
+
+      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.end();
+    });
+
+    var host = grunt.config('server.hostname') || grunt.config('server.host') || 'localhost',
+        port = grunt.config('server.port') || 35729;
+
+
+    server.listen(port, function() {
+      grunt.log.ok('LiveReload server listening on ' + port);
+
+      // ensure proper instantiation of the reactor object
+      grunt.helper('reload:reactor', {
+        server: this,
+        apiVersion: '1.7',
+        host: host,
+        port: port
+      });
+
+      cb(null, port);
+
+    });
+  });
 
   // actual server task
   grunt.registerTask('jekyll:server', 'Jekyll server task', function() {
+    var cb = this.async();
+    var yeoman = grunt.config('yeoman');
     var jekyll = grunt.util.spawn({
-      cmd: 'jekyll'
+      cmd: 'jekyll',
+      args: [yeoman.app, yeoman.temp, '--server', '--auto']
     }, function(err, out, code) {
       if(err && code !== 0) {
         console.error(out.stdout);
@@ -31,42 +68,8 @@ module.exports = function(grunt) {
 
     jekyll.stdout.pipe(process.stdout);
     jekyll.stderr.pipe(process.stderr);
-  });
 
-  // ensure proper config in Gruntfile. Case there are no config for jekyll, setup defaults
-  grunt.registerTask('jekyll:config', function() {
-    var watch = grunt.config('watch.jekyll');
-    // already configured, noop.
-    if(watch) return;
-
-    grunt.config('watch.jekyll', {
-      files: ['_site/**/*'],
-      tasks: 'reload'
-    });
-
-    var server = http.createServer(function(req, res) {
-      var url = parse(req.url);
-      if(url.pathname === '/livereload.js') {
-        return request(livereload).pipe(res);
-      }
-
-      res.writeHead(200, {'Content-Type': 'text/plain'});
-      res.end();
-    });
-
-    var port = grunt.config('server.port') || 35729;
-
-    // ensure proper instantiation of the reactor object
-    var reactor = grunt.helper('reload:reactor', {
-      server: server,
-      apiVersion: '1.7',
-      host: grunt.config('server.hostname') || grunt.config('server.host') || 'localhost',
-      port: grunt.config('server.port') || 35729
-    });
-
-    server.listen(port, function() {
-      grunt.log.ok('LiveReload server listening on ' + port);
-    });
+    cb(null);
   });
 
   // Build stuff (todo move in build.js)
