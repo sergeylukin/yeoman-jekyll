@@ -53,10 +53,10 @@ module.exports = function(grunt) {
   // actual server task
   grunt.registerTask('jekyll:server', 'Jekyll server task', function() {
     var cb = this.async();
-    var yeoman = grunt.config('yeoman');
+    var yeoman = grunt.config('yeoman') || {};
     var jekyll = grunt.util.spawn({
       cmd: 'jekyll',
-      args: [yeoman.app, yeoman.temp, '--server', '--auto']
+      args: [yeoman.app || 'app', yeoman.temp || 'temp', '--server', '--auto']
     }, function(err, out, code) {
       if(err && code !== 0) {
         console.error(out.stdout);
@@ -84,21 +84,21 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('jekyll:build', 'Runs a jekyll compile step', function() {
-    var yeoman = grunt.config('yeoman');
+    var yeoman = grunt.config('yeoman') || {};
 
     grunt.config('base', process.cwd());
 
     var cb = this.async();
     var jekyll = grunt.util.spawn({
       cmd: 'jekyll',
-      args: [yeoman.app, yeoman.temp, '--no-server', '--no-auto']
+      args: [yeoman.app || 'app', yeoman.temp || 'temp', '--no-server', '--no-auto']
     }, function(err, out, code) {
       if(err && code !== 0) {
         console.error(out.stdout);
         process.exit(0);
       }
 
-      process.chdir(path.resolve(yeoman.temp));
+      process.chdir(path.resolve(yeoman.temp || 'temp'));
       cb(err);
     });
 
